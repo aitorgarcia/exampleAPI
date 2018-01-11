@@ -7,14 +7,12 @@
 //
 
 import UIKit
+import CoreData
 
 class ViewController: UIViewController, UITableViewDataSource, UITableViewDelegate{
     
-    var mensajes = [Message]()/*{
-        didSet{
-            guardarDatos()
-        }
-    }*/
+    var mensajes = [Message]()
+    //var mensajes: [NSManagedObject] = []
     
     @IBOutlet weak var tableView: UITableView!
     
@@ -26,7 +24,7 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         let username = usernameTF.text
         let message = messageTF.text
         
-        let nuevoMensaje = Message(autor: username!, mensaje: message!)
+        let nuevoMensaje = Message(autor: username!, mensaje: message!, id: 0, fecha: "")
         mensajes += [nuevoMensaje]
         
         tableView.reloadData()
@@ -51,14 +49,14 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         usernameTF.inputView = UIView()
         messageTF.inputView = UIView()
         
-        //cargarDatosTabla()
+        cargarJSON()
     }
     
     
-    func cargarDatosTabla(){
-        let postEndpoint: String = "http://roxy-hana.com:8080/api/board/"
+    func cargarJSON() {
+        // Datos de la conexion con la API
+        let url = NSURL(string: "http://roxy-hana.com:8080/api/board/")!
         let session = NSURLSession.sharedSession()
-        let url = NSURL(string: postEndpoint)!
         
         // Make the POST call and handle it in a completion handler
         session.dataTaskWithURL(url, completionHandler: { ( data: NSData?, response: NSURLResponse?, error: NSError?) -> Void in
@@ -67,29 +65,46 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
                 realResponse.statusCode == 200 else {
                     print("Not a 200 response")
                     return
-            }
+                }
             
             // Read the JSON
             do {
-                if let jsonCompleto = NSString(data: data!, encoding: NSUTF8StringEncoding){
-                    //Parse the JSON to get the IP
-                    let jsonDictionary = try NSJSONSerialization.JSONObjectWithData(data!, options: NSJSONReadingOptions.MutableContainers) as! NSDictionary
-                    let id = jsonDictionary["id"] as! Int
-                    let author = jsonDictionary["author"] as! String
-                    let message = jsonDictionary["message"] as! String
-                    let date = jsonDictionary["date"] as! NSDate
+                if let jsonCompleto = NSString(data:data!, encoding: NSUTF8StringEncoding) {
+                    // Hasta aqui bien:
+                    // Imprime por pantalla el JSON entero
+                    print(jsonCompleto)
                     
-                    //Update the label
-                    self.performSelectorOnMainThread("updateIPLabel:", withObject: author, waitUntilDone: false)
+                    //Extrayendo datos del JSON
+                    let jsonDictionary = try NSJSONSerialization.JSONObjectWithData(data!, options: NSJSONReadingOptions.MutableContainers) as! NSArray
+                    /*
+                    //De esta forma se carga con un dictionary
+                    for(key, value) in jsonDictionary{
+                        let keyName = key as! String
+                        let keyValue : String = value as! String
+                        
+                        if(self.respondsToSelector(NSSelectorFromString(keyName))){
+                            self.setValue(keyValue, forKey: keyName)
+                        }
+                    }*/
+                    
+                    //pruebas para cargar con un array
+                    for item in jsonDictionary{
+                        let objeto = item as! Message
+                        
+
+                        
+                        
+                        /*if(self.respondsToSelector(NSSelectorFromString(keyName))){
+                            self.setValue(keyValue, forKey: keyName)
+                        }*/
+                    }
+                    
                 }
-            } catch {
-                print("Ha fallado.")
+            } catch let error as NSError{
+                print("Error al cargar: \(error.localizedDescription)")
             }
         }).resume()
     }
-    
-    
-    
     
     
 
