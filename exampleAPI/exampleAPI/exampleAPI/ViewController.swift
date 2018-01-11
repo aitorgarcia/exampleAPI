@@ -25,14 +25,14 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         let message = messageTF.text
         
         let nuevoMensaje = Message(autor: username!, mensaje: message!, id: 0, fecha: "")
-        mensajes += [nuevoMensaje]
+        //mensajes += [nuevoMensaje]
         
         guardarJSON(nuevoMensaje)
         
-        tableView.reloadData()
+        //tableView.reloadData()
         usernameTF.text = ""
         messageTF.text = ""
-        print("Boton send pulsado.")
+        //print("Boton send pulsado.")
     }
     
     
@@ -62,37 +62,29 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         let url = NSURL(string: "http://roxy-hana.com:8080/api/board/new")!
         let session = NSURLSession.sharedSession()
         
-        // Make the POST call and handle it in a completion handler
-        session.dataTaskWithURL(url, completionHandler: { ( data: NSData?, response: NSURLResponse?, error: NSError?) -> Void in
-            // Make sure we get an OK response
-            guard let realResponse = response as? NSHTTPURLResponse where
-                realResponse.statusCode == 200 else {
-                    print("Not a 200 response")
-                    return
-            }
+        
+        let request = NSMutableURLRequest(URL: url)
+        
+        request.HTTPMethod = "POST"
+        
+        var data = [String: AnyObject]()
+        data["author"] = nuevoMensaje.autor
+        data["message"] = nuevoMensaje.mensaje
+        
+         request.HTTPBody = try! NSJSONSerialization.dataWithJSONObject(data , options: [])
+        
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        
+      
+        let task = session.dataTaskWithRequest(request, completionHandler: {data,response, error -> Void in print("OK")
             
-            // Read the JSON
-            do {
-                if NSString(data:data!, encoding: NSUTF8StringEncoding) != nil {
-                    
-                    //Extrayendo datos del JSON
-                    let json = try NSJSONSerialization.JSONObjectWithData(data!, options: NSJSONReadingOptions.MutableContainers) as! [[String: AnyObject]]
-                    
-                    //pruebas para cargar con un array
-                    for msg in json {
-                        let autor = msg["author"] as! String
-                        let mensaje = msg["message"] as! String
-                        let id = msg["id"] as! Int
-                        let fecha = msg["date"] as! String
-                        self.mensajes.append(Message(autor: autor, mensaje: mensaje, id: id, fecha: fecha))
-                        
-                    }
-                    self.tableView.reloadData()
-                }
-            } catch let error as NSError{
-                print("Error al cargar: \(error.localizedDescription)")
-            }
-        }).resume()
+            
+        self.cargarJSON()
+        
+        })
+        task.resume()
+        
     }
 
     
