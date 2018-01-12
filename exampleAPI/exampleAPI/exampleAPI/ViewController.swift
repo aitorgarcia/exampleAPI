@@ -7,12 +7,10 @@
 //
 
 import UIKit
-import CoreData
 
 class ViewController: UIViewController, UITableViewDataSource, UITableViewDelegate{
     
     var mensajes = [Message]()
-    //var mensajes: [NSManagedObject] = []
     
     @IBOutlet weak var tableView: UITableView!
     
@@ -25,25 +23,30 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         let message = messageTF.text
         
         let nuevoMensaje = Message(autor: username!, mensaje: message!, id: 0, fecha: "")
-        //mensajes += [nuevoMensaje]
         
         guardarJSON(nuevoMensaje)
-        
-        //tableView.reloadData()
+        sleep(1)
         usernameTF.text = ""
         messageTF.text = ""
-        //print("Boton send pulsado.")
+        print("Boton send pulsado (se ha guardado el mensaje en la API).")
+        tableView.reloadData()
+    }
+    
+    //Recarga la tabla (por si estas con la tabal filtrada)
+    @IBAction func reloadButton(sender: AnyObject) {
+        mensajes.removeAll()
+        cargarJSON()
+        print("Boton reload pulsado.")
     }
     
     
     //Borra el chat y recarga la tabla
     @IBAction func clearButton(sender: AnyObject) {
-        
-      borrarJSON()
+        borrarJSON()
         
         mensajes.removeAll()
         tableView.reloadData()
-        print("Boton clear pulsado.")
+        print("Boton clear pulsado (se han borrado todos los mensajes de la API).")
     }
     
    
@@ -55,8 +58,15 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         messageTF.inputView = UIView()
         
         cargarJSON()
+        
+        sleep(1)
+        tableView.reloadData()
     }
     
+    
+    
+    
+    //POST: GUARDA UN MENSAJE EN LA API
     func guardarJSON(nuevoMensaje: Message){
         // Datos de la conexion con la API
         let url = NSURL(string: "http://roxy-hana.com:8080/api/board/new")!
@@ -77,17 +87,20 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         request.addValue("application/json", forHTTPHeaderField: "Accept")
         
       
-        let task = session.dataTaskWithRequest(request, completionHandler: {data,response, error -> Void in print("OK")
-            
-            
-        self.cargarJSON()
+        let task = session.dataTaskWithRequest(request, completionHandler: {data,response, error -> Void in
+        
+            self.mensajes.removeAll()
+            self.cargarJSON()
         
         })
         task.resume()
-        
+        self.tableView.reloadData()
     }
 
+
     
+    
+    //DELETE: BORRA TODA LA API
     func borrarJSON(){
         // Datos de la conexion con la API
         let url = NSURL(string: "http://roxy-hana.com:8080/api/board/clean")!
@@ -101,15 +114,13 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
                     print("Not a 200 response")
                     return
             }
-            
-            // Read the JSON
+            // Leemos el JSON
             do {
                 if NSString(data:data!, encoding: NSUTF8StringEncoding) != nil {
                     
                     //Extrayendo datos del JSON
                     let json = try NSJSONSerialization.JSONObjectWithData(data!, options: NSJSONReadingOptions.MutableContainers) as! [[String: AnyObject]]
                     
-                    //pruebas para cargar con un array
                     for msg in json {
                         let autor = msg["author"] as! String
                         let mensaje = msg["message"] as! String
@@ -126,6 +137,9 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         }).resume()
     }
     
+    
+    
+    //GET: CARGA TODA LA API
     func cargarJSON() {
         // Datos de la conexion con la API
         let url = NSURL(string: "http://roxy-hana.com:8080/api/board/")!
@@ -139,7 +153,6 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
                     print("Not a 200 response")
                     return
                 }
-            
             // Read the JSON
             do {
                 if NSString(data:data!, encoding: NSUTF8StringEncoding) != nil {
@@ -154,7 +167,6 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
                         let id = msg["id"] as! Int
                         let fecha = msg["date"] as! String
                         self.mensajes.append(Message(autor: autor, mensaje: mensaje, id: id, fecha: fecha))
-
                     }
                     self.tableView.reloadData()
                 }
@@ -162,13 +174,101 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
                 print("Error al cargar: \(error.localizedDescription)")
             }
         }).resume()
-        
     }
+    
+    
+    
+    //DELETE: BORRA UN MENSAJE DE LA API
+    func borrarMensajeJSON(id: String){
+        // Datos de la conexion con la API
+        let api : String = "http://roxy-hana.com:8080/api/board/delete/" + id
+        let url = NSURL(string: api)!
+        let session = NSURLSession.sharedSession()
+        
+        // Make the POST call and handle it in a completion handler
+        session.dataTaskWithURL(url, completionHandler: { ( data: NSData?, response: NSURLResponse?, error: NSError?) -> Void in
+            // Make sure we get an OK response
+            guard let realResponse = response as? NSHTTPURLResponse where
+                realResponse.statusCode == 200 else {
+                    print("Not a 200 response")
+                    return
+            }
+            // Leemos el JSON
+            do {
+                if NSString(data:data!, encoding: NSUTF8StringEncoding) != nil {
+                    
+                    //Extrayendo datos del JSON
+                    let json = try NSJSONSerialization.JSONObjectWithData(data!, options: NSJSONReadingOptions.MutableContainers) as! [[String: AnyObject]]
+                    
+                    for msg in json {
+                        let autor = msg["author"] as! String
+                        let mensaje = msg["message"] as! String
+                        let id = msg["id"] as! Int
+                        let fecha = msg["date"] as! String
+                        self.mensajes.append(Message(autor: autor, mensaje: mensaje, id: id, fecha: fecha))
+                        
+                    }
+                    self.tableView.reloadData()
+                }
+            } catch let error as NSError{
+                print("Error al cargar: \(error.localizedDescription)")
+            }
+        }).resume()
+        tableView.reloadData()
+    }
+
+    
+    
+
+    
+    
+    //Boton de la celda para eliminar mensaje
+    func tableView(tableView: UITableView, editActionsForRowAtIndexPath indexPath: NSIndexPath) -> [UITableViewRowAction]? {
+        let appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
+        let managedContext = appDelegate.managedObjectContext
+        
+        let delete = UITableViewRowAction(style: .Destructive, title: "X    ."){ action, index in
+            
+            do{
+                try managedContext.save()
+                print(index.row)
+                
+                let idAPI : String = "\(self.mensajes[index.row].id)"
+                print(idAPI)
+                
+                self.mensajes.removeAtIndex(index.row)
+                self.borrarMensajeJSON(idAPI)
+            
+            } catch {
+                print("Error al eliminar el mensaje")
+            }
+        }
+        return [delete]
+    }
+    
+    
+    
+    
     
     func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCellWithIdentifier("TableViewCell", forIndexPath: indexPath) as! TableViewCell
         cell.usernameLabel.text = mensajes[indexPath.row].autor
         cell.messageLabel.text = mensajes[indexPath.row].mensaje
+        
+        
+        //Pasa la fecha de String a NSDate
+        let dateString = mensajes[indexPath.row].fecha
+        let dateFormatter2 = NSDateFormatter()
+        dateFormatter2.dateFormat = "yyyy-MM-dd hh:mm:ss.S"
+        let dateFromString = dateFormatter2.dateFromString(dateString)
+        //Pasa la fecha de NSDate a String
+        let date = dateFromString
+        let dateFormatter = NSDateFormatter()
+        dateFormatter.dateFormat = "hh:mm"
+        let stringDate = dateFormatter.stringFromDate(date!)
+        
+        
+        cell.dateLabel.text = stringDate
         
         return cell
     }
@@ -186,36 +286,5 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-    
-    /*func cargarDatosTabla(){
-     
-     //Ejemplos para comprobar que funcionaba bien
-     /*let m1 = Message(autor: "Aitor", mensaje: "Hola, que tal")
-     let m2 = Message(autor: "Roxy", mensaje: "Buenas, muy bien, y tu")
-     let m3 = Message(autor: "Aitor", mensaje: "Mal, quiero puto morirme")
-     let m4 = Message(autor: "Roxy", mensaje: "I know that feel")
-     mensajes += [m1,m2,m3,m4]*/
-     
-     if let array = NSKeyedUnarchiver.unarchiveObjectWithFile(Message.messageURL!.path!) as? [Message]{
-     self.mensajes += array
-     }else{
-     print("Error al cargar los datos")
-     let m1 = Message(autor: "Aitor", mensaje: "Hola, que tal")
-     let m2 = Message(autor: "Roxy", mensaje: "Buenas, muy bien, y tu")
-     let m3 = Message(autor: "Aitor", mensaje: "Mal, quiero puto morirme")
-     let m4 = Message(autor: "Roxy", mensaje: "I know that feel")
-     mensajes += [m1,m2,m3,m4]
-     }
-     }*/
-    
-    /*
-     func guardarDatos(){
-     let exito = NSKeyedArchiver.archiveRootObject(self.mensajes, toFile: Message.messageURL!.path!)
-     if !exito{
-     print("Error en la carga del archivo...")
-     }
-     }*/
-    
-    
 }
 
