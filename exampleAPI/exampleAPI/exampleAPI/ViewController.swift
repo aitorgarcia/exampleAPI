@@ -40,7 +40,7 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
     }
     
     
-    //Borra el chat y recarga la tabla
+    //Borra el chat y recarga la tabla.
     @IBAction func clearButton(sender: AnyObject) {
         borrarJSON()
         
