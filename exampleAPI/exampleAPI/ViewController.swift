@@ -301,9 +301,9 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
             
             let idAPI : String = "\(self.mensajes[index.row].id)"
             print(idAPI)
-            
-            self.cargarAPartirDeUnMensajeJSON(idAPI)
             self.mensajes.removeAll()
+            self.tableView.reloadData()
+            self.cargarAPartirDeUnMensajeJSON(idAPI)
             sleep(1)
             self.tableView.reloadData()
         }
