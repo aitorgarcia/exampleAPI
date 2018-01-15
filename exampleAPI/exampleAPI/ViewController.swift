@@ -257,6 +257,7 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
                         let fecha = msg["date"] as! String
                         self.mensajes.append(Message(autor: autor, mensaje: mensaje, id: id, fecha: fecha))
                     }
+                    
                     self.tableView.reloadData()
                 }
             } catch let error as NSError{
@@ -283,11 +284,12 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
                 let idAPI : String = "\(self.mensajes[index.row].id)"
                 print(idAPI)
                 
+                self.mensajes.removeAll()
+                
+                self.tableView.reloadData()
+        
                 self.borrarMensajeJSON(idAPI)
-                self.mensajes.removeAtIndex(index.row)
-                //self.mensajes.removeAll()
-                //sleep(1)
-                //self.tableView.reloadData()
+                sleep(1)
                 self.tableView.reloadData()
             
             } catch {
